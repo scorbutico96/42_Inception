@@ -1,0 +1,77 @@
+version: "3.9"
+
+services:
+
+  mariadb:
+    build: requirements/mariadb
+    image: mariadb
+    env_file:
+      - .env
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - wpsite
+    restart: always
+
+  wordpress:
+    depends_on:
+      - mariadb
+    build: requirements/wordpress
+    image: wordpress
+    env_file:
+      - .env
+    volumes:
+      - wp-data:/var/www/html/wordpress
+    networks:
+      - wpsite
+    restart: always
+
+  nginx:
+    depends_on:
+      - wordpress
+    build: requirements/nginx
+    image: nginx
+    env_file:
+      - .env
+    volumes:
+      - wp-data:/var/www/html/wordpress
+    networks:
+      - wpsite
+    ports:
+      - 80:80
+      - 443:443
+    restart: always
+
+  ftp:
+    depends_on:
+      - wordpress
+    build: requirements/ftp
+    image: ftp
+    privileged: true
+    env_file:
+      - .env
+    volumes:
+      - wp-data:/var/ftp
+    ports:
+      - "21:21"
+      - 21000-21010:21000-21010
+    restart: always
+
+
+networks:
+  wpsite:
+
+
+volumes:
+
+  db-data:
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: '~/data/db-data'
+
+  wp-data:
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: '~/data/wp-data'
